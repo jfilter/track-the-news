@@ -38,7 +38,7 @@ def generate_matchwords(word):
     """Generate matchwords for case sensitive words (often abbreviations)
     """
     prefix = ['(', '[', '"', "'", ' ']
-    suffix = [')', ']', ';', ',', '.', ':', '–', '–', '"', "'", ' ']
+    suffix = [')', ']', ';', ',', '.', ':', '-', u'–', '"', "'", ' ']
     comb = list(itertools.product(prefix, suffix))
     return [c[0] + word + c[1] for c in comb]
 
