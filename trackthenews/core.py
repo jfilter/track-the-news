@@ -12,6 +12,7 @@ import sqlite3
 import time
 import textwrap
 import sys
+import itertools
 
 from datetime import datetime
 from io import BytesIO, open
@@ -32,6 +33,14 @@ from twython import Twython, TwythonError
 # TODO: add support for additional parsers beyond readability
 # readability doesn't work very well on NYT, which requires something custom
 # TODO: add other forms of output beyond a Twitter bot
+
+def generate_matchwords(word):
+    """Generate matchwords for case sensitive words (often abbreviations)
+    """
+    prefix = ['(', '[', '"', "'", ' ']
+    suffix = [')', ']', ';', ',', '.', ':', '–', '–', '"', "'", ' ']
+    comb = list(itertools.product(prefix, suffix))
+    return [c[0] + word + c[1] for c in comb]
 
 class Article:
     def __init__(self, outlet, title, url, delicate=False, redirects=False):
@@ -377,8 +386,11 @@ def main():
     with open(matchlist, 'r', encoding="utf-8") as f:
         matchwords = [w for w in f.read().split('\n') if w]
     with open(matchlist_case_sensitive, 'r', encoding="utf-8") as f:
-        matchwords_case_sensitive = [w for w in f.read().split('\n') if w]
- 
+        matchwords_case_sensitive_raw = [w for w in f.read().split('\n') if w]
+        matchwords_case_sensitive = []
+        for w in matchwords_case_sensitive_raw:
+            matchwords_case_sensitive += generate_matchwords(w)
+        
     if not (matchwords or matchwords_case_sensitive):
             sys.exit("You must add words to at least one of the matchwords lists, located at {} and {}.".format(matchlist, matchlist_case_sensitive))
 
