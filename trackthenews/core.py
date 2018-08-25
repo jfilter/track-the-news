@@ -13,6 +13,7 @@ import time
 import textwrap
 import sys
 import itertools
+from sets import Set
 
 from datetime import datetime
 from io import BytesIO, open
@@ -431,12 +432,16 @@ def main():
 
         articles = parse_feed(outlet, url, delicate, redirects)
         deduped = []
+        deduped_urls = Set()
 
         for article in articles:
             article_exists = conn.execute('select * from articles where url = ?',
                     (article.url,)).fetchall()
-            if not article_exists:
+            # make sure it wasn't already processed and also there are no duplicates in the feed
+            if not article_exists and not article.url in deduped_urls:
                 deduped.append(article)
+                deduped_urls.add(article.url)
+        
 
         for counter, article in enumerate(deduped, 1):
             # aquire exclusive access here since changes are commited later int he loop
