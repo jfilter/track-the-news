@@ -4,3 +4,7 @@ matchwords.txt
 __pycache__/*
 *.db
 ttnconfig/*
+build
+dist
+*.egg-info
+.vscode
