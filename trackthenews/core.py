@@ -88,6 +88,13 @@ class Article:
         Clean up an article, check it against a block list, then for matches.
         """
         self.clean()
+
+        # skip over articles that have the user agent present.
+        # this indicates a problem with the website because the user agent
+        # should not be present.
+        if ua in self.plaintext:
+            return
+
         plaintext_grafs = self.plaintext.split('\n')
 
         if blocklist_loaded and blocklist.check(self):
