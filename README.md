@@ -1,4 +1,4 @@
-# NB: This is a Fork
+# NB: This is a [Fork](https://github.com/freedomofpress/trackthenews)
 
 Changes:
 - use Python 2.7 because with Python 3.*, there is a [bug when creating images with Umlauts](https://github.com/freedomofpress/trackthenews/issues/1)
@@ -6,6 +6,10 @@ Changes:
 - process feeds in parallel
 - ensure articles are unique
 - a lot of minor fixes to address quirks of the script
+
+```
+pip install git+https://github.com/jfilter/track-the-news#egg=trackthenews
+```
 
 # Track The News
 
