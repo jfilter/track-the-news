@@ -263,6 +263,26 @@ def setup_db(config):
         conn.commit()
         conn.close()
 
+    # migration ... this is so aweful I almost cry
+    try:
+        conn = sqlite3.connect(database)
+        schema_script = """alter table articles ADD COLUMN tweet_id TEXT default null;"""
+        conn.executescript(schema_script)
+        conn.commit()
+        conn.close()
+    except:
+        print(str(e))
+
+
+    # migration ... this is so aweful I almost cry
+    try:
+        conn = sqlite3.connect(database)
+        schema_script = """CREATE UNIQUE INDEX idx_articles_url ON articles(url);"""
+        conn.executescript(schema_script)
+        conn.commit()
+        conn.close()
+    except sqlite3.Error as e:
+        print(str(e))
 
 def setup_matchlist():
     path = os.path.join(home, 'matchlist.txt')
@@ -384,8 +404,10 @@ def main(job_index, num_jobs):
     ua = config['user-agent']
 
     database = os.path.join(home, config['db'])
-    if not os.path.isfile(database):
-        setup_db(config)
+
+    # always run to check for migrations
+    #  if not os.path.isfile(database):
+    setup_db(config)
 
     conn = sqlite3.connect(database, isolation_level='EXCLUSIVE')
     conn.execute('BEGIN EXCLUSIVE')
