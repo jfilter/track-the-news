@@ -1,3 +1,12 @@
+# NB: This is a Fork
+
+Changes:
+- use Python 2.7 because with Python 3.*, there is a [bug when creating images with Umlauts](https://github.com/freedomofpress/trackthenews/issues/1)
+- reduce false positives by [creating more specific match words](https://github.com/jfilter/track-the-news/commit/aa85d91508bed0023ed4f375a255a7fb57ddcd32)
+- process feeds in parallel
+- ensure articles are unique
+- a lot of minor fixes to address quirks of the script
+
 # Track The News
 
 `trackthenews` is the script that powers [@FOIAfeed](https://twitter.com/foiafeed), a Twitter bot that monitors news outlets for reporting that incorporates public records laws like the Freedom of Information Act (FOIA), and tweets links to and excerpts from matching articles. The underlying software can track any collection of RSS feeds for any keywords.
