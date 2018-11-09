@@ -435,7 +435,7 @@ def main(job_index, num_jobs):
             rss_feeds = json.load(f)
             # chunk outlets
             outlets = list(set([x['outlet'] for x in rss_feeds]))
-            outlets_chunk = list(chunk_list(outlets.sort(), num_jobs))[job_index]
+            outlets_chunk = list(chunk_list(sorted(outlets), num_jobs))[job_index]
             # only use feeds that are in the current chunk
             rss_feeds = [feed for feed in rss_feeds if feed['outlet'] in outlets_chunk]
 
