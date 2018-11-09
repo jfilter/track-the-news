@@ -25,6 +25,7 @@ import html2text
 import requests
 import yaml
 
+from simplejson import JSONDecodeError
 from bs4 import BeautifulSoup
 from PIL import Image, ImageDraw, ImageFont
 from readability import Document
@@ -427,7 +428,7 @@ def main():
     with open(rssfeedsfile, 'r', encoding="utf-8") as f:
         try:
             rss_feeds = json.load(f)
-        except json.JSONDecodeError:
+        except JSONDecodeError:
             sys.exit("You must add RSS feeds to the RSS feeds list, located at {}.".format(rssfeedsfile))
 
     for feed in rss_feeds:
