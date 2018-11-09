@@ -5,6 +5,9 @@
 
 from __future__ import unicode_literals
 
+TEST_MODE = False
+
+
 import argparse
 import importlib
 import json
@@ -108,7 +111,7 @@ class Article:
                     any(word in graf for word in matchwords_case_sensitive)):
                     self.matching_grafs.append(graf)
 
-    def tweet(self):
+    def tweet(self, **kwargs):
         """Send images to be rendered and tweet them with a text status."""
         square = False if len(self.matching_grafs) == 1 else True
         for graf in self.matching_grafs[:4]:
@@ -118,7 +121,8 @@ class Article:
 
         media_ids = []
 
-        for img in self.imgs:
+        # twitter only allows 4 images?
+        for img in self.imgs[:4]:
             try:
                 img_io = BytesIO()
                 img.save(img_io, format='jpeg', quality=95)
@@ -132,10 +136,14 @@ class Article:
         source = self.outlet + ": " if self.outlet else ''
 
         status = "{}{} {}".format(source, self.title, self.url)
-        twitter.update_status(status=status, media_ids=media_ids)
+        if TEST_MODE:
+            print('would tweet')
+            return '1337'
+        response = twitter.update_status(status=status, media_ids=media_ids, **kwargs)
         print(status)
 
         self.tweeted = True
+        return response['id_str']
 
 
 def get_twitter_instance():
@@ -270,7 +278,7 @@ def setup_db(config):
         conn.executescript(schema_script)
         conn.commit()
         conn.close()
-    except:
+    except sqlite3.Error as e:
         print(str(e))
 
 
@@ -409,8 +417,7 @@ def main(job_index, num_jobs):
     #  if not os.path.isfile(database):
     setup_db(config)
 
-    conn = sqlite3.connect(database, isolation_level='EXCLUSIVE')
-    conn.execute('BEGIN EXCLUSIVE')
+    conn = sqlite3.connect(database)
 
     matchlist = os.path.join(home, 'matchlist.txt')
     matchlist_case_sensitive = os.path.join(home, 'matchlist_case_sensitive.txt')
@@ -457,7 +464,9 @@ def main(job_index, num_jobs):
             rss_feeds = json.load(f)
             # chunk outlets
             outlets = list(set([x['outlet'] for x in rss_feeds]))
+            print(outlets)
             outlets_chunk = list(chunk_list(sorted(outlets), num_jobs))[job_index]
+            print(outlets_chunk)
             # only use feeds that are in the current chunk
             rss_feeds = [feed for feed in rss_feeds if feed['outlet'] in outlets_chunk]
 
@@ -477,43 +486,53 @@ def main(job_index, num_jobs):
         deduped_urls = Set()
 
         for article in articles:
-            article_exists = conn.execute('select * from articles where url = ?',
-                    (article.url,)).fetchall()
-            # make sure it wasn't already processed and also there are no duplicates in the feed
-            if not article_exists and not article.url in deduped_urls:
+            if not article.url in deduped_urls:
                 deduped.append(article)
                 deduped_urls.add(article.url)
         
         # try to aquire exclusive connection to db, retry if fails but sleep before
-        while True:
+        for counter, article in enumerate(deduped, 1):
+            article_exists = conn.execute('select * from articles where url = ?',
+                    (article.url,)).fetchall()
+
+            if len(article_exists) != 0:
+                continue
+
+            print('Checking {} article {}/{}'.format(
+                article.outlet, counter, len(deduped)))
+
             try:
-                for counter, article in enumerate(deduped, 1):
-                    # aquire exclusive access here since changes are commited later int he loop
-                    conn.execute('BEGIN EXCLUSIVE')
-
-                    print('Checking {} article {}/{}'.format(
-                        article.outlet, counter, len(deduped)))
-
-                    try:
-                        article.check_for_matches()
-                    except:
-                        print('Having trouble with that article. Skipping for now.')
-                        pass
-
-                    if article.matching_grafs:
-                        print("Got one!")
-                        article.tweet()
-
-                    conn.execute("""insert into articles(
-                                title, outlet, url, tweeted,recorded_at)
-                                values (?, ?, ?, ?, ?)""",
-                                (article.title, article.outlet, article.url,
-                                article.tweeted, datetime.utcnow()))
-
-                    conn.commit()
-                    # sleep to avoid bombarding the outlet
-                    time.sleep(1)
+                article.check_for_matches()
             except:
+                print('Having trouble with that article. Skipping for now.')
+                pass
+
+            just_tweeted_id = None
+            if article.matching_grafs:
+                print("Got one!")
+                same_title = conn.execute("select tweet_id from articles where title = ? and recorded_at <= date('now','-2 day')",
+                    (article.title,)).fetchall()
+                if len(same_title) != 0:
+                    tweet_id = same_title[-1]
+
+                    # not sure if list or not
+                    if isinstance(tweet_id, list):
+                        tweet_id = tweet_id[0]
+
+                    just_tweeted_id = article.tweet(in_reply_to_status_id=int(tweet_id))
+                else:
+                    just_tweeted_id = article.tweet()
+            try:
+                conn.execute("""insert into articles(
+                            title, outlet, url, tweeted, recorded_at, tweet_id)
+                            values (?, ?, ?, ?, ?, ?)""",
+                            (article.title, article.outlet, article.url,
+                            article.tweeted, datetime.utcnow(), just_tweeted_id))
+
+                conn.commit()
+                time.sleep(1)
+            except sqlite3.IntegrityError as e:
+                print(e)
                 time.sleep(1)
 
     conn.close()
