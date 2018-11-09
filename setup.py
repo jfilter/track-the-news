@@ -17,7 +17,7 @@ setup(
     author_email='parker@freedom.press',
     url='https://github.com/freedomofpress/trackthenews',
     entry_points={
-        'console_scripts': ['trackthenews=trackthenews:main']
+        'console_scripts': ['trackthenews=trackthenews:run']
     },
     package_data={
         'trackthenews': ['fonts/*']

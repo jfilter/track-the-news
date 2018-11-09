@@ -24,18 +24,19 @@ import feedparser
 import html2text
 import requests
 import yaml
-
 from simplejson import JSONDecodeError
 from bs4 import BeautifulSoup
 from PIL import Image, ImageDraw, ImageFont
 from readability import Document
 from twython import Twython, TwythonError
+from joblib import Parallel, delayed
 
 # TODO: add/remove RSS feeds from within the script.
 # Currently the matchwords list and RSS feeds list must be edited separately.
 # TODO: add support for additional parsers beyond readability
 # readability doesn't work very well on NYT, which requires something custom
 # TODO: add other forms of output beyond a Twitter bot
+
 
 def generate_matchwords(word):
     """Generate matchwords for case sensitive words (often abbreviations)
@@ -346,8 +347,12 @@ def initial_setup():
 
     return config
 
+# https://stackoverflow.com/a/2135920/4028896
+def chunk_list(a, n):
+    k, m = divmod(len(a), n)
+    return (a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in xrange(n))
 
-def main():
+def main(job_index, num_jobs):
     parser = argparse.ArgumentParser(description="Track articles from RSS feeds for a custom list of keywords and act on the matches.")
 
     parser.add_argument('-c', '--config', help="Run configuration process",
@@ -428,6 +433,12 @@ def main():
     with open(rssfeedsfile, 'r', encoding="utf-8") as f:
         try:
             rss_feeds = json.load(f)
+            # chunk outlets
+            outlets = list(set([x['outlet'] for x in rss_feeds]))
+            outlets_chunk = list(chunk_list(outlets, num_jobs))[job_index]
+            # only use feeds that are in the current chunk
+            rss_feeds = [feed for feed in rss_feeds if feed['outlet'] in outlets_chunk]
+
         except JSONDecodeError:
             sys.exit("You must add RSS feeds to the RSS feeds list, located at {}.".format(rssfeedsfile))
 
@@ -451,35 +462,44 @@ def main():
                 deduped.append(article)
                 deduped_urls.add(article.url)
         
-
-        for counter, article in enumerate(deduped, 1):
-            # aquire exclusive access here since changes are commited later int he loop
-            conn.execute('BEGIN EXCLUSIVE')
-
-            print('Checking {} article {}/{}'.format(
-                article.outlet, counter, len(deduped)))
-
+        # try to aquire exclusive connection to db, retry if fails but sleep before
+        while True:
             try:
-                article.check_for_matches()
+                for counter, article in enumerate(deduped, 1):
+                    # aquire exclusive access here since changes are commited later int he loop
+                    conn.execute('BEGIN EXCLUSIVE')
+
+                    print('Checking {} article {}/{}'.format(
+                        article.outlet, counter, len(deduped)))
+
+                    try:
+                        article.check_for_matches()
+                    except:
+                        print('Having trouble with that article. Skipping for now.')
+                        pass
+
+                    if article.matching_grafs:
+                        print("Got one!")
+                        article.tweet()
+
+                    conn.execute("""insert into articles(
+                                title, outlet, url, tweeted,recorded_at)
+                                values (?, ?, ?, ?, ?)""",
+                                (article.title, article.outlet, article.url,
+                                article.tweeted, datetime.utcnow()))
+
+                    conn.commit()
+                    # sleep to avoid bombarding the outlet
+                    time.sleep(1)
             except:
-                print('Having trouble with that article. Skipping for now.')
-                pass
-
-            if article.matching_grafs:
-                print("Got one!")
-                article.tweet()
-
-            conn.execute("""insert into articles(
-                         title, outlet, url, tweeted,recorded_at)
-                         values (?, ?, ?, ?, ?)""",
-                         (article.title, article.outlet, article.url,
-                          article.tweeted, datetime.utcnow()))
-
-            conn.commit()
-
-            time.sleep(1)
+                time.sleep(1)
 
     conn.close()
 
+def run():
+    num_jobs = 4;
+    Parallel(n_jobs=num_jobs)(delayed(main)(i, num_jobs) for i in range(num_jobs))
+
+
 if __name__ == '__main__':
-    main()
+    run()
