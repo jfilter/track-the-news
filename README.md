@@ -1,15 +1,22 @@
 # NB: This is a [Fork](https://github.com/freedomofpress/trackthenews)
 
-Changes:
-- use Python 2.7 because with Python 3.*, there is a [bug when creating images with Umlauts](https://github.com/freedomofpress/trackthenews/issues/1)
-- reduce false positives by [creating more specific match words](https://github.com/jfilter/track-the-news/commit/aa85d91508bed0023ed4f375a255a7fb57ddcd32)
-- process feeds in parallel
-- ensure articles are unique
-- a lot of minor fixes to address quirks of the script
-
+### Install
 ```
 pip install git+https://github.com/jfilter/track-the-news#egg=trackthenews
 ```
+
+### Some useful SQLite commands
+
+#### detect duplicates
+```
+ SELECT url, COUNT(*) c FROM articles GROUP BY url HAVING c > 1;
+ ```
+
+#### delete duplicates
+
+ ```
+  delete from articles where id not in (select min(id) from articles group by url, tweeted);
+  ```
 
 # Track The News
 
@@ -60,7 +67,7 @@ If you designated a custom installation directory, or if you're running it from 
 trackthenews ~/foo/bar/path
 ```
 
-Settings, such as the background color for new posts, the font, and the user-agent, are all located in `config.yaml`, in the designated configuration directory. 
+Settings, such as the background color for new posts, the font, and the user-agent, are all located in `config.yaml`, in the designated configuration directory.
 
 ## How it works
 
