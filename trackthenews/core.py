@@ -417,7 +417,7 @@ def main(job_index, num_jobs):
     #  if not os.path.isfile(database):
     setup_db(config)
 
-    conn = sqlite3.connect(database)
+    conn = sqlite3.connect(database, timeout=30)
 
     matchlist = os.path.join(home, 'matchlist.txt')
     matchlist_case_sensitive = os.path.join(home, 'matchlist_case_sensitive.txt')
@@ -537,7 +537,7 @@ def main(job_index, num_jobs):
     conn.close()
 
 def run():
-    num_jobs = 4;
+    num_jobs = 2;
     Parallel(n_jobs=num_jobs)(delayed(main)(i, num_jobs) for i in range(num_jobs))
 
 
