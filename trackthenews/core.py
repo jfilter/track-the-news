@@ -465,7 +465,10 @@ def main(job_index, num_jobs):
             # chunk outlets
             outlets = list(set([x['outlet'] for x in rss_feeds]))
             print(outlets)
-            outlets_chunk = list(chunk_list(sorted(outlets), num_jobs))[job_index]
+            if num_jobs > 1:
+                outlets_chunk = list(chunk_list(sorted(outlets), num_jobs))[job_index]
+            else:
+                outlets_chunk = outlets
             print(outlets_chunk)
             # only use feeds that are in the current chunk
             rss_feeds = [feed for feed in rss_feeds if feed['outlet'] in outlets_chunk]
@@ -537,9 +540,9 @@ def main(job_index, num_jobs):
     conn.close()
 
 def run():
-    num_jobs = 2;
-    Parallel(n_jobs=num_jobs)(delayed(main)(i, num_jobs) for i in range(num_jobs))
-
+    # num_jobs = 2;
+    # Parallel(n_jobs=num_jobs)(delayed(main)(i, num_jobs) for i in range(num_jobs))
+    main(0, 1)
 
 if __name__ == '__main__':
     run()
