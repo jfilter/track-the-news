@@ -44,10 +44,15 @@ from joblib import Parallel, delayed
 def generate_matchwords(word):
     """Generate matchwords for case sensitive words (often abbreviations)
     """
-    prefix = ['(', '[', '"', "'", ' ']
-    suffix = [')', ']', ';', ',', '.', ':', '-', u'–', '"', "'", ' ']
-    comb = list(itertools.product(prefix, suffix))
-    return [c[0] + word + c[1] for c in comb]
+
+    words = [word, word + 'e', word + 'en', word + 'es', word + 's']
+    res = []
+    for w in words:
+        prefix = ['(', '[', '"', "'", ' ']
+        suffix = [')', ']', ';', ',', '.', ':', '-', u'–', '"', "'", ' ']
+        comb = list(itertools.product(prefix, suffix))
+        res += [c[0] + w + c[1] for c in comb]
+    return res
 
 class Article:
     def __init__(self, outlet, title, url, delicate=False, redirects=False):
