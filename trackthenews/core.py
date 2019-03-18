@@ -106,6 +106,12 @@ class Article:
         if ua in self.plaintext:
             return
 
+        # block certain words
+        # i don't understand the previous implemenation -- jfiter
+        if not blocklist_words is None:
+            if any(word.lower() in self.plaintext.lower() for word in blocklist_words):
+                return
+
         plaintext_grafs = self.plaintext.split('\n')
 
         if blocklist_loaded and blocklist.check(self):
@@ -432,8 +438,12 @@ def main(job_index, num_jobs):
 
     global matchwords
     global matchwords_case_sensitive
+    global blocklist_words
+
     with open(matchlist, 'r', encoding="utf-8") as f:
         matchwords = [w for w in f.read().split('\n') if w]
+    with open(os.path.join(home, 'blocklist.txt'), 'r', encoding="utf-8") as f:
+        blocklist_words = [w for w in f.read().split('\n') if w]
     with open(matchlist_case_sensitive, 'r', encoding="utf-8") as f:
         matchwords_case_sensitive_raw = [w for w in f.read().split('\n') if w]
         matchwords_case_sensitive = []
