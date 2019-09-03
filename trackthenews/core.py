@@ -533,7 +533,7 @@ def main(job_index, num_jobs):
                     tweet_id = same_title[-1]
 
                     # not sure if list or not
-                    if isinstance(tweet_id, list):
+                    if isinstance(tweet_id, list) or isinstance(tweet_id, tuple):
                         tweet_id = tweet_id[0]
 
                     just_tweeted_id = article.tweet(in_reply_to_status_id=int(tweet_id))
