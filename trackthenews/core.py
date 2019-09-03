@@ -527,7 +527,7 @@ def main(job_index, num_jobs):
             just_tweeted_id = None
             if article.matching_grafs:
                 print("Got one!")
-                same_title = conn.execute("select tweet_id from articles where title = ? and recorded_at <= date('now','-2 day')",
+                same_title = conn.execute("select tweet_id from articles where title = ? and recorded_at >= date('now','-2 day')",
                     (article.title,)).fetchall()
                 if len(same_title) != 0:
                     tweet_id = same_title[-1]
