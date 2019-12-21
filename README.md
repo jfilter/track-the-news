@@ -3,7 +3,7 @@
 ### Changes:
 - use Python 2.7 because with Python 3.*, there is a [bug when creating images with Umlauts](https://github.com/freedomofpress/trackthenews/issues/1)
 - reduce false positives by [creating more specific match words](https://github.com/jfilter/track-the-news/commit/aa85d91508bed0023ed4f375a255a7fb57ddcd32)
-- process feeds in parallel
+- group articles with the same headline in one Twitter thread (useful for, e.g., dpa)
 - ensure articles are unique
 - speed up lookup of URL by introducing an index
 
